@@ -12,41 +12,49 @@ speedStd   = config.getfloat("OPTIONS","speedStd")
 carSpacing   = config.getfloat("OPTIONS","carSpacing")
 dt   = config.getfloat("OPTIONS","dt")
 tFinal   = config.getfloat("OPTIONS","tFinal")
+numberOfLanes  = config.getint("OPTIONS","numberOfLanes")
+saveToFile  = config.getboolean("OPTIONS","saveToFile")
 
 traffic = highway.createTraffic(numberOfCars,speedLimit,speedStd,carSpacing)
+
+if saveToFile:
+    fPos = open('pos.csv','w')
+    fLane = open('lane.csv','w')
 
 t = 0
 
 while t < tFinal:
-
-    fig = pl.figure(figsize=(1,10))
-    ax = fig.add_subplot(111)
-
     for car in traffic.cars:
 
         car.pos += car.speed*dt
 
-        if car.pos >= traffic.getLeader().pos:
-            pass
-        else:
-            nearestCar = highway.getNearestCar(car,traffic)
-            if (nearestCar.pos - car.pos <5) and (nearestCar.speed < car.speed):
-                car.passing = True
-                car.passingCar = nearestCar
-                
-        if car.passing and (car.pos - car.passingCar.pos) > 5:
-            car.passing = False
-            car.passingCar = None
+    
+        nearestCarCurrentLane = highway.getNearestCar(car,traffic,car.lane)
+        nearestCarNextLane = highway.getNearestCar(car,traffic,car.lane+1)
+        nearestCarPreviousLane = highway.getNearestCar(car,traffic,car.lane-1)
 
-        if car.passing:
-            c='r'
-            j = 0
-        else:
-            c='b'
-            j = 1
-        ax.scatter(j,car.pos,c=c)
-        ax.set_xlim(-.5,1.5)
-        ax.set_ylim(0,500)
-    pl.savefig('plots/%.2f.png' % (t))
-    pl.close('all')
+        if (nearestCarCurrentLane != None)  and (nearestCarCurrentLane.speed < car.speed) and (car.lane < numberOfLanes) and (nearestCarCurrentLane.pos - car.pos  < 5) and (nearestCarCurrentLane.pos - car.pos  > 0.) and ((nearestCarNextLane == None) or abs(car.pos - nearestCarNextLane.pos) > 5) :
+            car.lane +=1
+            
+        elif (nearestCarCurrentLane != None)  and (nearestCarCurrentLane.speed < car.speed) and (car.lane < numberOfLanes) and (nearestCarCurrentLane.pos - car.pos  < 5) and ((nearestCarNextLane != None) and abs(car.pos - nearestCarNextLane.pos) < 5) :
+            car.speed = nearestCarCurrentLane.speed
+            car.blocked = True
+
+        elif (nearestCarCurrentLane != None)  and ((nearestCarNextLane == None) or abs(car.pos - nearestCarNextLane.pos) > 5) and car.blocked:
+            car.speed = car.initialSpeed
+            car.blocked = False
+
+        elif car.lane > 0 and (nearestCarPreviousLane == None or (abs(car.pos - nearestCarPreviousLane.pos) > 5)):
+            car.lane -=1
+    for i in range(len(traffic.getPos())):
+        fPos.write(str(traffic.getPos()[i])+'\t')
+        fLane.write(str(traffic.getLanes()[i])+'\t')
+
+        if i == len(traffic.getPos())-1:
+            fPos.write('\n')
+            fLane.write('\n')
+
+
     t += dt
+fPos.close()
+fLane.close()
