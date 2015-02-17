@@ -1,8 +1,11 @@
 from pylab import *
 
-pos= loadtxt('pos.csv',)
-lane = loadtxt('lane.csv',)
+pos= genfromtxt('pos.csv',delimiter=',')
+pos = ma.masked_invalid(pos)
+
+lane = genfromtxt('lane.csv',delimiter=',')
 lane *= -1.
+lane = ma.masked_invalid(lane)
 uniqueLanes = np.unique(lane)
 dots = zeros((len(uniqueLanes)-1))
 for i in range(len(dots)):

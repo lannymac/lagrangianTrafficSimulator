@@ -1,13 +1,15 @@
 import numpy as np
 import copy
+import ConfigParser
 class car:
-    def __init__(self,speed,pos,name,lane,blocked):
+    def __init__(self,speed,pos,name,lane,blockedFromPassing,blockedFromMerging):
         
         self.speed = speed
         self.pos = pos
         self.lane = lane
         self.name = name
-        self.blocked = blocked
+        self.blockedFromPassing = blockedFromPassing
+        self.blockedFromMerging = blockedFromMerging
         self.initialSpeed = copy.copy(speed)
         
 class traffic:
@@ -52,14 +54,33 @@ class traffic:
 
         return lanes
 
+    def savePosition(self,f):
+        for i in range(len(self.cars)):
+            f.write('%.2f,' % (self.cars[i].pos))
+        f.write('\n')
+
+    def saveLane(self,f):
+        for i in range(len(self.cars)):
+            f.write('%.2f,' % (self.cars[i].lane))
+        f.write('\n')
+        
+
 
         
-def createTraffic(num,speed,std,spacing):
+def createTraffic():#num,speed,std,spacing):
+    config = ConfigParser.ConfigParser()
+    config.read('input.cfg')
+
+    num = config.getint("OPTIONS","numberOfCars")
+    speed = config.getfloat("OPTIONS","speedLimit")
+    std   = config.getfloat("OPTIONS","speedStd")
+    spacing   = config.getfloat("OPTIONS","carSpacing")
+
     posList = np.arange(0,spacing*(num+1),spacing)
     cars = []
     for i in range(num):
         name = 'Car%02d' % (i+1)
-        cars.append(car(np.random.randn()*5+speed,posList[i],name,0,False))
+        cars.append(car(np.random.randn()*5+speed,posList[i],name,0,False,False))
 
     return traffic(cars)
 

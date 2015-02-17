@@ -3,23 +3,20 @@ import ConfigParser
 import sys
 import numpy as np
 import pylab as pl
+
 config = ConfigParser.ConfigParser()
 config.read('input.cfg')
-numberOfCars = config.getint("OPTIONS","numberOfCars")
-speedLimit = config.getfloat("OPTIONS","speedLimit")
-passingSpeed= config.getfloat("OPTIONS","passingSpeed")
-speedStd   = config.getfloat("OPTIONS","speedStd")
-carSpacing   = config.getfloat("OPTIONS","carSpacing")
+
 dt   = config.getfloat("OPTIONS","dt")
 tFinal   = config.getfloat("OPTIONS","tFinal")
 numberOfLanes  = config.getint("OPTIONS","numberOfLanes")
 saveToFile  = config.getboolean("OPTIONS","saveToFile")
 
-traffic = highway.createTraffic(numberOfCars,speedLimit,speedStd,carSpacing)
+traffic = highway.createTraffic()
 
-if saveToFile:
-    fPos = open('pos.csv','w')
-    fLane = open('lane.csv','w')
+
+fPosition = open('pos.csv','w')
+fLane = open('lane.csv','w')
 
 t = 0
 
@@ -28,7 +25,6 @@ while t < tFinal:
 
         car.pos += car.speed*dt
 
-    
         nearestCarCurrentLane = highway.getNearestCar(car,traffic,car.lane)
         nearestCarNextLane = highway.getNearestCar(car,traffic,car.lane+1)
         nearestCarPreviousLane = highway.getNearestCar(car,traffic,car.lane-1)
@@ -38,23 +34,19 @@ while t < tFinal:
             
         elif (nearestCarCurrentLane != None)  and (nearestCarCurrentLane.speed < car.speed) and (car.lane < numberOfLanes) and (nearestCarCurrentLane.pos - car.pos  < 5) and ((nearestCarNextLane != None) and abs(car.pos - nearestCarNextLane.pos) < 5) :
             car.speed = nearestCarCurrentLane.speed
-            car.blocked = True
+            car.blockedFromPassing = True
 
-        elif (nearestCarCurrentLane != None)  and ((nearestCarNextLane == None) or abs(car.pos - nearestCarNextLane.pos) > 5) and car.blocked:
+        elif (nearestCarCurrentLane != None)  and ((nearestCarNextLane == None) or abs(car.pos - nearestCarNextLane.pos) > 5) and car.blockedFromPassing:
             car.speed = car.initialSpeed
-            car.blocked = False
+            car.blockedFromPassing = False
 
-        elif car.lane > 0 and (nearestCarPreviousLane == None or (abs(car.pos - nearestCarPreviousLane.pos) > 5)):
+        elif car.lane > 0 and (nearestCarPreviousLane == None or (abs(car.pos - nearestCarPreviousLane.pos) > 10)):
             car.lane -=1
-    for i in range(len(traffic.getPos())):
-        fPos.write(str(traffic.getPos()[i])+'\t')
-        fLane.write(str(traffic.getLanes()[i])+'\t')
-
-        if i == len(traffic.getPos())-1:
-            fPos.write('\n')
-            fLane.write('\n')
+    
+    traffic.savePosition(fPosition)
+    traffic.saveLane(fLane)
 
 
     t += dt
-fPos.close()
+fPosition.close()
 fLane.close()
